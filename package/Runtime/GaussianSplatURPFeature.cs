@@ -27,6 +27,7 @@ namespace GaussianSplatting.Runtime
             const string ProfilerTag = "GaussianSplatRenderGraph";
             static readonly ProfilingSampler s_profilingSampler = new(ProfilerTag);
             static readonly int s_gaussianSplatRT = Shader.PropertyToID(GaussianSplatRTName);
+            static readonly int s_cameraTargetTexelSize = Shader.PropertyToID("_CameraTargetTexture_TexelSize");
 
             class PassData
             {
@@ -34,6 +35,7 @@ namespace GaussianSplatting.Runtime
                 internal TextureHandle SourceTexture;
                 internal TextureHandle SourceDepth;
                 internal TextureHandle GaussianSplatRT;
+                internal bool IsTargetBackBuffer;
             }
 
             public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
@@ -53,6 +55,7 @@ namespace GaussianSplatting.Runtime
                 passData.SourceTexture = resourceData.activeColorTexture;
                 passData.SourceDepth = resourceData.activeDepthTexture;
                 passData.GaussianSplatRT = textureHandle;
+                passData.IsTargetBackBuffer = resourceData.isActiveTargetBackBuffer;
 
                 builder.UseTexture(resourceData.activeColorTexture, AccessFlags.ReadWrite);
                 builder.UseTexture(resourceData.activeDepthTexture);
@@ -62,6 +65,7 @@ namespace GaussianSplatting.Runtime
                 {
                     var commandBuffer = CommandBufferHelpers.GetNativeCommandBuffer(context.cmd);
                     using var _ = new ProfilingScope(commandBuffer, s_profilingSampler);
+                    commandBuffer.SetGlobalVector(s_cameraTargetTexelSize, data.IsTargetBackBuffer ? Vector4.one : Vector4.zero);
                     commandBuffer.SetGlobalTexture(s_gaussianSplatRT, data.GaussianSplatRT);
                     CoreUtils.SetRenderTarget(commandBuffer, data.GaussianSplatRT, data.SourceDepth, ClearFlag.Color, Color.clear);
                     Material matComposite = GaussianSplatRenderSystem.instance.SortAndRenderSplats(data.CameraData.camera, commandBuffer);

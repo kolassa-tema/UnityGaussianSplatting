@@ -43,5 +43,3 @@ of objects with lower order setting.
 ### Known issues where things do not work
 
 - Any kind of MSAA anti-aliasing usage does not work.
-- In URP, turning off both HDR _and_ changing Intermediate Texture setting
-  from default "Always" to "Auto" makes stuff render upside down.
